@@ -18,7 +18,7 @@ import okhttp3.HttpUrl;
  */
 public class CookieJarImpl implements CookieJar {
 
-    private FastCookieManager mCookieManager;
+    private final FastCookieManager mCookieManager;
 
     public CookieJarImpl() {
         mCookieManager = FastCookieManager.getInstance();

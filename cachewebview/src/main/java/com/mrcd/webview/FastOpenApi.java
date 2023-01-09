@@ -1,7 +1,7 @@
 package com.mrcd.webview;
 
 import com.mrcd.webview.config.CacheConfig;
-import com.mrcd.webview.config.FastCacheMode;
+import com.mrcd.webview.config.CacheMode;
 import com.mrcd.webview.cache.interceptor.CacheInterceptor;
 
 /**
@@ -10,7 +10,7 @@ import com.mrcd.webview.cache.interceptor.CacheInterceptor;
  */
 public interface FastOpenApi {
 
-    void setCacheMode(FastCacheMode mode, CacheConfig cacheConfig);
+    void setCacheMode(CacheMode mode, CacheConfig cacheConfig);
 
     void addResourceInterceptor(CacheInterceptor interceptor);
 }

@@ -21,38 +21,39 @@ import android.webkit.WebViewClient;
 
 import com.mrcd.webview.cache.interceptor.CacheInterceptor;
 import com.mrcd.webview.config.CacheConfig;
-import com.mrcd.webview.config.FastCacheMode;
+import com.mrcd.webview.config.CacheMode;
 
 import javax.security.auth.Destroyable;
 
 /**
  * 用于拦截资源加载的 WebViewClient 装饰器。
  */
-class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destroyable {
+class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroyable {
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final String METHOD_GET = "GET";
-    private WebViewClient mDelegate;
+    private WebViewClient mClient;
     private final WebViewCache mWebViewCache;
     private final int mWebViewCacheMode;
     private final String mUserAgent;
-    private final FastWebView mWebView;
+    private final CacheWebView mWebView;
 
-    WebViewClientDecorator(FastWebView webView) {
+    WebViewClientWrapper(CacheWebView webView) {
         mWebView = webView;
         final WebSettings settings = webView.getSettings();
         mWebViewCacheMode = settings.getCacheMode();
         mUserAgent = settings.getUserAgentString();
-        mWebViewCache = new WebViewCacheImpl(webView.getContext());
+        mWebViewCache = new WebViewCache(webView.getContext());
     }
 
-    void setupDelegateWith(WebViewClient client) {
-        mDelegate = client;
+    void setupWrapperFor(WebViewClient client) {
+        mClient = client;
     }
+
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, String url) {
-        if (mDelegate != null) {
-            return mDelegate.shouldOverrideUrlLoading(view, url);
+        if (mClient != null) {
+            return mClient.shouldOverrideUrlLoading(view, url);
         }
         view.loadUrl(url);
         return true;
@@ -61,8 +62,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
     @TargetApi(Build.VERSION_CODES.N)
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-        if (mDelegate != null) {
-            return mDelegate.shouldOverrideUrlLoading(view, request);
+        if (mClient != null) {
+            return mClient.shouldOverrideUrlLoading(view, request);
         }
         view.loadUrl(request.getUrl().toString());
         return true;
@@ -70,8 +71,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-        if (mDelegate != null) {
-            final WebResourceResponse response = mDelegate.shouldInterceptRequest(view, request);
+        if (mClient != null) {
+            final WebResourceResponse response = mClient.shouldInterceptRequest(view, request);
             if (response != null) {
                 return response;
             }
@@ -94,11 +95,11 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
     public void onPageFinished(WebView view, String url) {
         if (mWebView.isRecycled() && !url.equals("about:blank")) {
             mWebView.setRecycled(false);
-            // TODO: 2023/1/9 这么弄的目的是什么？ 是为了清除预加载、WebView Pool 残留的历史记录吗？
+            // 修复 WebView 复用时 goBack 可能出现白屏的问题
             mWebView.clearHistory();
         }
-        if (mDelegate != null) {
-            mDelegate.onPageFinished(view, url);
+        if (mClient != null) {
+            mClient.onPageFinished(view, url);
             return;
         }
         super.onPageFinished(view, url);
@@ -106,8 +107,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onTooManyRedirects(WebView view, Message cancelMsg, Message continueMsg) {
-        if (mDelegate != null) {
-            mDelegate.onTooManyRedirects(view, cancelMsg, continueMsg);
+        if (mClient != null) {
+            mClient.onTooManyRedirects(view, cancelMsg, continueMsg);
             return;
         }
         super.onTooManyRedirects(view, cancelMsg, continueMsg);
@@ -116,8 +117,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
     @Override
     @TargetApi(Build.VERSION_CODES.M)
     public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedHttpError(view, request, errorResponse);
+        if (mClient != null) {
+            mClient.onReceivedHttpError(view, request, errorResponse);
             return;
         }
         super.onReceivedHttpError(view, request, errorResponse);
@@ -125,8 +126,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onFormResubmission(WebView view, Message dontResend, Message resend) {
-        if (mDelegate != null) {
-            mDelegate.onFormResubmission(view, dontResend, resend);
+        if (mClient != null) {
+            mClient.onFormResubmission(view, dontResend, resend);
             return;
         }
         super.onFormResubmission(view, dontResend, resend);
@@ -134,8 +135,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
-        if (mDelegate != null) {
-            mDelegate.doUpdateVisitedHistory(view, url, isReload);
+        if (mClient != null) {
+            mClient.doUpdateVisitedHistory(view, url, isReload);
             return;
         }
         super.doUpdateVisitedHistory(view, url, isReload);
@@ -143,8 +144,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedSslError(view, handler, error);
+        if (mClient != null) {
+            mClient.onReceivedSslError(view, handler, error);
             return;
         }
         super.onReceivedSslError(view, handler, error);
@@ -152,8 +153,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onReceivedClientCertRequest(WebView view, ClientCertRequest request) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedClientCertRequest(view, request);
+        if (mClient != null) {
+            mClient.onReceivedClientCertRequest(view, request);
             return;
         }
         super.onReceivedClientCertRequest(view, request);
@@ -161,8 +162,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onReceivedHttpAuthRequest(WebView view, HttpAuthHandler handler, String host, String realm) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedHttpAuthRequest(view, handler, host, realm);
+        if (mClient != null) {
+            mClient.onReceivedHttpAuthRequest(view, handler, host, realm);
             return;
         }
         super.onReceivedHttpAuthRequest(view, handler, host, realm);
@@ -170,16 +171,16 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public boolean shouldOverrideKeyEvent(WebView view, KeyEvent event) {
-        if (mDelegate != null) {
-            return mDelegate.shouldOverrideKeyEvent(view, event);
+        if (mClient != null) {
+            return mClient.shouldOverrideKeyEvent(view, event);
         }
         return super.shouldOverrideKeyEvent(view, event);
     }
 
     @Override
     public void onUnhandledKeyEvent(WebView view, KeyEvent event) {
-        if (mDelegate != null) {
-            mDelegate.onUnhandledKeyEvent(view, event);
+        if (mClient != null) {
+            mClient.onUnhandledKeyEvent(view, event);
             return;
         }
         super.onUnhandledKeyEvent(view, event);
@@ -187,8 +188,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onScaleChanged(WebView view, float oldScale, float newScale) {
-        if (mDelegate != null) {
-            mDelegate.onScaleChanged(view, oldScale, newScale);
+        if (mClient != null) {
+            mClient.onScaleChanged(view, oldScale, newScale);
             return;
         }
         super.onScaleChanged(view, oldScale, newScale);
@@ -196,8 +197,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onReceivedLoginRequest(WebView view, String realm, String account, String args) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedLoginRequest(view, realm, account, args);
+        if (mClient != null) {
+            mClient.onReceivedLoginRequest(view, realm, account, args);
             return;
         }
         super.onReceivedLoginRequest(view, realm, account, args);
@@ -206,16 +207,16 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
     @TargetApi(Build.VERSION_CODES.O)
     @Override
     public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-        if (mDelegate != null) {
-            return mDelegate.onRenderProcessGone(view, detail);
+        if (mClient != null) {
+            return mClient.onRenderProcessGone(view, detail);
         }
         return super.onRenderProcessGone(view, detail);
     }
 
     @Override
     public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedError(view, errorCode, description, failingUrl);
+        if (mClient != null) {
+            mClient.onReceivedError(view, errorCode, description, failingUrl);
             return;
         }
         super.onReceivedError(view, errorCode, description, failingUrl);
@@ -224,8 +225,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
     @TargetApi(Build.VERSION_CODES.M)
     @Override
     public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-        if (mDelegate != null) {
-            mDelegate.onReceivedError(view, request, error);
+        if (mClient != null) {
+            mClient.onReceivedError(view, request, error);
             return;
         }
         super.onReceivedError(view, request, error);
@@ -233,8 +234,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onPageStarted(WebView view, String url, Bitmap favicon) {
-        if (mDelegate != null) {
-            mDelegate.onPageStarted(view, url, favicon);
+        if (mClient != null) {
+            mClient.onPageStarted(view, url, favicon);
             return;
         }
         super.onPageStarted(view, url, favicon);
@@ -242,8 +243,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onLoadResource(WebView view, String url) {
-        if (mDelegate != null) {
-            mDelegate.onLoadResource(view, url);
+        if (mClient != null) {
+            mClient.onLoadResource(view, url);
             return;
         }
         super.onLoadResource(view, url);
@@ -251,8 +252,8 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
 
     @Override
     public void onPageCommitVisible(WebView view, String url) {
-        if (mDelegate != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            mDelegate.onPageCommitVisible(view, url);
+        if (mClient != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            mClient.onPageCommitVisible(view, url);
             return;
         }
         super.onPageCommitVisible(view, url);
@@ -263,20 +264,20 @@ class WebViewClientDecorator extends WebViewClient implements FastOpenApi, Destr
         // don't intercept request below android 5.0
         // bc we can not get request method, request body and request headers
         // delegate intercept first
-        return mDelegate != null ? mDelegate.shouldInterceptRequest(view, url) : null;
+        return mClient != null ? mClient.shouldInterceptRequest(view, url) : null;
     }
 
     @Override
     @TargetApi(Build.VERSION_CODES.O_MR1)
     public void onSafeBrowsingHit(final WebView view, final WebResourceRequest request, final int threatType, final SafeBrowsingResponse callback) {
-        if (mDelegate != null) {
-            mDelegate.onSafeBrowsingHit(view, request, threatType, callback);
+        if (mClient != null) {
+            mClient.onSafeBrowsingHit(view, request, threatType, callback);
         }
         super.onSafeBrowsingHit(view, request, threatType, callback);
     }
 
     @Override
-    public void setCacheMode(FastCacheMode mode, CacheConfig cacheConfig) {
+    public void setCacheMode(CacheMode mode, CacheConfig cacheConfig) {
         if (mWebViewCache != null) {
             mWebViewCache.setCacheMode(mode, cacheConfig);
         }

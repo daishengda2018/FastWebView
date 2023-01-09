@@ -7,9 +7,10 @@ import android.webkit.WebResourceResponse;
 import com.mrcd.webview.cache.CacheProvider;
 import com.mrcd.webview.cache.CacheProviderImpl;
 import com.mrcd.webview.cache.CacheRequest;
+import com.mrcd.webview.cache.Destroyable;
 import com.mrcd.webview.cache.interceptor.CacheInterceptor;
 import com.mrcd.webview.config.CacheConfig;
-import com.mrcd.webview.config.FastCacheMode;
+import com.mrcd.webview.config.CacheMode;
 import com.mrcd.webview.utils.MimeTypeMapUtils;
 
 import java.util.Map;
@@ -18,20 +19,19 @@ import java.util.Map;
  * Created by Ryan
  * 2018/2/7 下午5:07
  */
-public class WebViewCacheImpl implements WebViewCache {
+public class WebViewCache implements FastOpenApi, Destroyable {
 
-    private FastCacheMode mFastCacheMode;
+    private CacheMode mCacheMode;
     private CacheConfig mCacheConfig;
     private CacheProvider mCacheProvider;
     private Context mContext;
 
-    WebViewCacheImpl(Context context) {
+    WebViewCache(Context context) {
         mContext = context;
     }
 
-    @Override
     public WebResourceResponse getResource(WebResourceRequest webResourceRequest, int cacheMode, String userAgent) {
-        if (mFastCacheMode == FastCacheMode.DEFAULT) {
+        if (mCacheMode == CacheMode.DEFAULT) {
             return null;
         }
         final String url = webResourceRequest.getUrl().toString();
@@ -41,7 +41,7 @@ public class WebViewCacheImpl implements WebViewCache {
         CacheRequest cacheRequest = new CacheRequest();
         cacheRequest.setUrl(url);
         cacheRequest.setMime(mimeType);
-        cacheRequest.setForceMode(mFastCacheMode == FastCacheMode.FORCE);
+        cacheRequest.setForceMode(mCacheMode == CacheMode.FORCE);
         cacheRequest.setUserAgent(userAgent);
         cacheRequest.setWebViewCacheMode(cacheMode);
         cacheRequest.setHeaders(headers);
@@ -49,8 +49,8 @@ public class WebViewCacheImpl implements WebViewCache {
     }
 
     @Override
-    public void setCacheMode(FastCacheMode mode, CacheConfig cacheConfig) {
-        mFastCacheMode = mode;
+    public void setCacheMode(CacheMode mode, CacheConfig cacheConfig) {
+        mCacheMode = mode;
         mCacheConfig = cacheConfig;
     }
 

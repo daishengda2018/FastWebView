@@ -19,14 +19,14 @@ import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
-import com.mrcd.webview.FastWebView;
-import com.mrcd.webview.FastWebViewPool;
+import com.mrcd.webview.CacheWebView;
+import com.mrcd.webview.WebViewPool;
 import com.mrcd.webview.WebResource;
 import com.mrcd.webview.cache.Chain;
 import com.mrcd.webview.cache.interceptor.CacheInterceptor;
 import com.mrcd.webview.config.CacheConfig;
 import com.mrcd.webview.config.DefaultMimeTypeFilter;
-import com.mrcd.webview.config.FastCacheMode;
+import com.mrcd.webview.config.CacheMode;
 import com.mrcd.webview.cookie.CookieInterceptor;
 import com.mrcd.webview.cookie.FastCookieManager;
 import com.mrcd.webview.utils.LogUtils;
@@ -47,7 +47,7 @@ import okhttp3.HttpUrl;
 public class WebViewActivity extends AppCompatActivity {
 
     private static final String TAG = "FastWebView";
-    private FastWebView fastWebView;
+    private CacheWebView mCachedWebView;
     private long initStartTime;
     private long startTime;
 
@@ -55,22 +55,22 @@ public class WebViewActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        FastWebView.setDebug(true);
+        CacheWebView.setDebug(true);
         LogUtils.d("------------- start once load -------------");
         startTime = SystemClock.uptimeMillis();
         initStartTime = SystemClock.uptimeMillis();
         if (sUseWebViewPool) {
-            fastWebView = FastWebViewPool.acquire(this);
+            mCachedWebView = WebViewPool.acquire(this);
         } else {
             LogUtils.d("create new webview instance.");
-            fastWebView = new FastWebView(this);
+            mCachedWebView = new CacheWebView(this);
         }
-        fastWebView.setWebChromeClient(new MonitorWebChromeClient());
-        fastWebView.setWebViewClient(new MonitorWebViewClient());
-        setContentView(fastWebView);
-        fastWebView.setFocusable(true);
-        fastWebView.setFocusableInTouchMode(true);
-        WebSettings webSettings = fastWebView.getSettings();
+        mCachedWebView.setWebChromeClient(new MonitorWebChromeClient());
+        mCachedWebView.setWebViewClient(new MonitorWebViewClient());
+        setContentView(mCachedWebView);
+        mCachedWebView.setFocusable(true);
+        mCachedWebView.setFocusableInTouchMode(true);
+        WebSettings webSettings = mCachedWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
         webSettings.setDomStorageEnabled(true);
         webSettings.setAllowFileAccess(true);
@@ -91,21 +91,21 @@ public class WebViewActivity extends AppCompatActivity {
         webSettings.setAllowUniversalAccessFromFileURLs(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CookieManager cookieManager = CookieManager.getInstance();
-            cookieManager.setAcceptThirdPartyCookies(fastWebView, true);
+            cookieManager.setAcceptThirdPartyCookies(mCachedWebView, true);
             webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE);
         }
         CacheConfig config = new CacheConfig.Builder(this)
                 .setCacheDir(getCacheDir() + File.separator + "custom")
                 .setExtensionFilter(new CustomMimeTypeFilter())
                 .build();
-        fastWebView.setCacheMode(FastCacheMode.FORCE, config);
-        fastWebView.addResourceInterceptor(new CacheInterceptor() {
+        mCachedWebView.setCacheMode(CacheMode.FORCE, config);
+        mCachedWebView.addResourceInterceptor(new CacheInterceptor() {
             @Override
             public WebResource load(Chain chain) {
                 return chain.process(chain.getRequest());
             }
         });
-        fastWebView.addJavascriptInterface(this, "android");
+        mCachedWebView.addJavascriptInterface(this, "android");
         Map<String, String> headers = new HashMap<>();
         headers.put("custom", "test");
 
@@ -118,7 +118,7 @@ public class WebViewActivity extends AppCompatActivity {
         cookieManager.setCookie(url, "custom=12345678910;");
         CookieSyncManager.getInstance().sync();
 
-        FastCookieManager fastCookieManager = fastWebView.getFastCookieManager();
+        FastCookieManager fastCookieManager = mCachedWebView.getFastCookieManager();
         fastCookieManager.addRequestCookieInterceptor(new CookieInterceptor() {
             @Override
             public List<Cookie> newCookies(HttpUrl url, List<Cookie> originCookies) {
@@ -138,7 +138,7 @@ public class WebViewActivity extends AppCompatActivity {
             }
         });
 
-        fastWebView.loadUrl(url, headers);
+        mCachedWebView.loadUrl(url, headers);
     }
 
     @JavascriptInterface
@@ -153,11 +153,11 @@ public class WebViewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (fastWebView != null) {
+        if (mCachedWebView != null) {
             if (sUseWebViewPool) {
-                FastWebViewPool.release(fastWebView);
+                WebViewPool.release(mCachedWebView);
             } else {
-                fastWebView.destroy();
+                mCachedWebView.destroy();
             }
         }
     }
@@ -186,8 +186,8 @@ public class WebViewActivity extends AppCompatActivity {
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
-            if (fastWebView.canGoBack()) {
-                fastWebView.goBack();
+            if (mCachedWebView.canGoBack()) {
+                mCachedWebView.goBack();
                 return true;
             }
         }

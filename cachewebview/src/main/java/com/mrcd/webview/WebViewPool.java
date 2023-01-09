@@ -15,20 +15,20 @@ import com.mrcd.webview.utils.LogUtils;
  * Created by Ryan
  * at 2019/11/4
  */
-public class FastWebViewPool {
+public class WebViewPool {
 
     private static final int MAX_POOL_SIZE = 2;
-    private static final Pools.Pool<FastWebView> sPool = new Pools.SynchronizedPool<>(MAX_POOL_SIZE);
+    private static final Pools.Pool<CacheWebView> sPool = new Pools.SynchronizedPool<>(MAX_POOL_SIZE);
 
     public static void prepare(Context context) {
         release(acquire(context.getApplicationContext()));
     }
 
-    public static FastWebView acquire(Context context) {
-        FastWebView webView = sPool.acquire();
+    public static CacheWebView acquire(Context context) {
+        CacheWebView webView = sPool.acquire();
         if (webView == null) {
             MutableContextWrapper wrapper = new MutableContextWrapper(context);
-            webView = new FastWebView(wrapper);
+            webView = new CacheWebView(wrapper);
             LogUtils.d("create new webview instance.");
         } else {
             MutableContextWrapper wrapper = (MutableContextWrapper) webView.getContext();
@@ -38,7 +38,7 @@ public class FastWebViewPool {
         return webView;
     }
 
-    public static void release(FastWebView webView) {
+    public static void release(CacheWebView webView) {
         if (webView == null) {
             return;
         }
