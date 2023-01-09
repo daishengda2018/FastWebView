@@ -19,17 +19,17 @@ import android.webkit.WebViewClient;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
-import com.ryan.github.view.FastWebView;
-import com.ryan.github.view.FastWebViewPool;
-import com.ryan.github.view.WebResource;
-import com.ryan.github.view.cache.Chain;
-import com.ryan.github.view.cache.interceptor.CacheInterceptor;
-import com.ryan.github.view.config.CacheConfig;
-import com.ryan.github.view.config.DefaultMimeTypeFilter;
-import com.ryan.github.view.config.FastCacheMode;
-import com.ryan.github.view.cookie.CookieInterceptor;
-import com.ryan.github.view.cookie.FastCookieManager;
-import com.ryan.github.view.utils.LogUtils;
+import com.mrcd.webview.FastWebView;
+import com.mrcd.webview.FastWebViewPool;
+import com.mrcd.webview.WebResource;
+import com.mrcd.webview.cache.Chain;
+import com.mrcd.webview.cache.interceptor.CacheInterceptor;
+import com.mrcd.webview.config.CacheConfig;
+import com.mrcd.webview.config.DefaultMimeTypeFilter;
+import com.mrcd.webview.config.FastCacheMode;
+import com.mrcd.webview.cookie.CookieInterceptor;
+import com.mrcd.webview.cookie.FastCookieManager;
+import com.mrcd.webview.utils.LogUtils;
 
 import java.io.File;
 import java.util.HashMap;
