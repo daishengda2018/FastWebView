@@ -1,6 +1,5 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache;
 
-import android.os.Build;
 import android.text.TextUtils;
 import android.webkit.WebResourceResponse;
 
@@ -24,7 +23,7 @@ public class DefaultWebResponseGenerator implements WebResourceResponseGenerator
         if (resource == null) {
             return null;
         }
-        Map<String, String> headers = resource.getResponseHeaders();
+        final Map<String, String> headers = resource.getResponseHeaders();
         String contentType = null;
         String charset = null;
         if (headers != null) {
@@ -49,24 +48,21 @@ public class DefaultWebResponseGenerator implements WebResourceResponseGenerator
         if (TextUtils.isEmpty(urlMime)) {
             return null;
         }
-        byte[] resourceBytes = resource.getOriginBytes();
-        if (resourceBytes == null || resourceBytes.length < 0) {
+        final byte[] resourceBytes = resource.getOriginBytes();
+        if (resourceBytes == null) {
             return null;
         }
         if (resourceBytes.length == 0 && resource.getResponseCode() == 304) {
             LogUtils.d("the response bytes can not be empty if we get 304.");
             return null;
         }
-        InputStream bis = new ByteArrayInputStream(resourceBytes);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            int status = resource.getResponseCode();
-            String reasonPhrase = resource.getReasonPhrase();
-            if (TextUtils.isEmpty(reasonPhrase)) {
-                reasonPhrase = PhraseList.getPhrase(status);
-            }
-            return new WebResourceResponse(urlMime, charset, status, reasonPhrase, resource.getResponseHeaders(), bis);
+        final InputStream bis = new ByteArrayInputStream(resourceBytes);
+        final int status = resource.getResponseCode();
+        String reasonPhrase = resource.getReasonPhrase();
+        if (TextUtils.isEmpty(reasonPhrase)) {
+            reasonPhrase = PhraseList.getPhrase(status);
         }
-        return new WebResourceResponse(urlMime, charset, bis);
+        return new WebResourceResponse(urlMime, charset, status, reasonPhrase, resource.getResponseHeaders(), bis);
     }
 
     private String getContentType(Map<String, String> headers, String key) {

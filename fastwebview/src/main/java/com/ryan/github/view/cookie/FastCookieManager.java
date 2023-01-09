@@ -2,9 +2,8 @@ package com.ryan.github.view.cookie;
 
 import android.content.Context;
 
-import com.ryan.github.view.offline.Destroyable;
+import com.ryan.github.view.cache.Destroyable;
 
-import java.net.CookieStore;
 import java.util.ArrayList;
 import java.util.List;
 

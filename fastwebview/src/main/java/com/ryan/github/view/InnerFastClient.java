@@ -1,15 +1,16 @@
 package com.ryan.github.view;
 
+import android.annotation.TargetApi;
 import android.graphics.Bitmap;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Message;
-import android.support.annotation.RequiresApi;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.webkit.ClientCertRequest;
 import android.webkit.HttpAuthHandler;
 import android.webkit.RenderProcessGoneDetail;
+import android.webkit.SafeBrowsingResponse;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
@@ -18,10 +19,10 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import com.ryan.github.view.cache.Destroyable;
+import com.ryan.github.view.cache.interceptor.CacheInterceptor;
 import com.ryan.github.view.config.CacheConfig;
 import com.ryan.github.view.config.FastCacheMode;
-import com.ryan.github.view.offline.Destroyable;
-import com.ryan.github.view.offline.ResourceInterceptor;
 
 /**
  * WebViewClient decorator for intercepting resource loading.
@@ -30,19 +31,18 @@ import com.ryan.github.view.offline.ResourceInterceptor;
  * 2018/2/7 下午3:39
  */
 class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable {
-
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final String METHOD_GET = "GET";
     private WebViewClient mDelegate;
-    private WebViewCache mWebViewCache;
+    private final WebViewCache mWebViewCache;
     private final int mWebViewCacheMode;
     private final String mUserAgent;
-    private FastWebView mOwner;
+    private final FastWebView mOwner;
 
     InnerFastClient(FastWebView owner) {
         mOwner = owner;
-        WebSettings settings = owner.getSettings();
+        final WebSettings settings = owner.getSettings();
         mWebViewCacheMode = settings.getCacheMode();
         mUserAgent = settings.getUserAgentString();
         mWebViewCache = new WebViewCacheImpl(owner.getContext());
@@ -61,8 +61,8 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         super.onTooManyRedirects(view, cancelMsg, continueMsg);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
+    @TargetApi(Build.VERSION_CODES.M)
     public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
         if (mDelegate != null) {
             mDelegate.onReceivedHttpError(view, request, errorResponse);
@@ -98,7 +98,6 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         super.onReceivedSslError(view, handler, error);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onReceivedClientCertRequest(WebView view, ClientCertRequest request) {
         if (mDelegate != null) {
@@ -152,7 +151,7 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         super.onReceivedLoginRequest(view, realm, account, args);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
+    @TargetApi(Build.VERSION_CODES.O)
     @Override
     public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
         if (mDelegate != null) {
@@ -170,7 +169,7 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         super.onReceivedError(view, errorCode, description, failingUrl);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
+    @TargetApi(Build.VERSION_CODES.M)
     @Override
     public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
         if (mDelegate != null) {
@@ -229,7 +228,7 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         return true;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.N)
+    @TargetApi(Build.VERSION_CODES.N)
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
         if (mDelegate != null) {
@@ -239,10 +238,31 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         return true;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
         return onIntercept(view, request);
+    }
+
+
+    private WebResourceResponse onIntercept(WebView view, WebResourceRequest request) {
+        if (mDelegate != null) {
+            final WebResourceResponse response = mDelegate.shouldInterceptRequest(view, request);
+            if (response != null) {
+                return response;
+            }
+        }
+        return loadFromWebViewCache(request);
+    }
+
+    private WebResourceResponse loadFromWebViewCache(WebResourceRequest request) {
+        final String scheme = request.getUrl().getScheme().trim();
+        final String method = request.getMethod().trim();
+        if ((TextUtils.equals(SCHEME_HTTP, scheme)
+                || TextUtils.equals(SCHEME_HTTPS, scheme))
+                && method.equalsIgnoreCase(METHOD_GET)) {
+            return mWebViewCache.getResource(request, mWebViewCacheMode, mUserAgent);
+        }
+        return null;
     }
 
     @Override
@@ -253,27 +273,13 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
         return mDelegate != null ? mDelegate.shouldInterceptRequest(view, url) : null;
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private WebResourceResponse onIntercept(WebView view, WebResourceRequest request) {
+    @Override
+    @TargetApi(Build.VERSION_CODES.O_MR1)
+    public void onSafeBrowsingHit(final WebView view, final WebResourceRequest request, final int threatType, final SafeBrowsingResponse callback) {
         if (mDelegate != null) {
-            WebResourceResponse response = mDelegate.shouldInterceptRequest(view, request);
-            if (response != null) {
-                return response;
-            }
+            mDelegate.onSafeBrowsingHit(view, request, threatType, callback);
         }
-        return loadFromWebViewCache(request);
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private WebResourceResponse loadFromWebViewCache(WebResourceRequest request) {
-        String scheme = request.getUrl().getScheme().trim();
-        String method = request.getMethod().trim();
-        if ((TextUtils.equals(SCHEME_HTTP, scheme)
-                || TextUtils.equals(SCHEME_HTTPS, scheme))
-                && method.equalsIgnoreCase(METHOD_GET)) {
-            return mWebViewCache.getResource(request, mWebViewCacheMode, mUserAgent);
-        }
-        return null;
+        super.onSafeBrowsingHit(view, request, threatType, callback);
     }
 
     @Override
@@ -284,7 +290,7 @@ class InnerFastClient extends WebViewClient implements FastOpenApi, Destroyable 
     }
 
     @Override
-    public void addResourceInterceptor(ResourceInterceptor interceptor) {
+    public void addResourceInterceptor(CacheInterceptor interceptor) {
         if (mWebViewCache != null) {
             mWebViewCache.addResourceInterceptor(interceptor);
         }

@@ -1,32 +1,34 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache.interceptor;
 
-import android.support.v4.util.LruCache;
+import android.util.LruCache;
 
 import com.ryan.github.view.WebResource;
 import com.ryan.github.view.config.CacheConfig;
+import com.ryan.github.view.cache.CacheRequest;
+import com.ryan.github.view.cache.Chain;
+import com.ryan.github.view.cache.Destroyable;
 
 /**
- * Created by Ryan
- * on 2020/4/14
+ * 内存资源
  */
-public class MemResourceInterceptor implements ResourceInterceptor, Destroyable {
+public class MemCacheInterceptor implements CacheInterceptor, Destroyable {
 
     private LruCache<String, WebResource> mLruCache;
 
-    private static volatile MemResourceInterceptor sInstance;
+    private static volatile MemCacheInterceptor sInstance;
 
-    public static MemResourceInterceptor getInstance(CacheConfig cacheConfig) {
+    public static MemCacheInterceptor getInstance(CacheConfig cacheConfig) {
         if (sInstance == null) {
-            synchronized (MemResourceInterceptor.class) {
+            synchronized (MemCacheInterceptor.class) {
                 if (sInstance == null) {
-                    sInstance = new MemResourceInterceptor(cacheConfig);
+                    sInstance = new MemCacheInterceptor(cacheConfig);
                 }
             }
         }
         return sInstance;
     }
 
-    private MemResourceInterceptor(CacheConfig cacheConfig) {
+    private MemCacheInterceptor(CacheConfig cacheConfig) {
         int memorySize = cacheConfig.getMemCacheSize();
         if (memorySize > 0) {
             mLruCache = new ResourceMemCache(memorySize);

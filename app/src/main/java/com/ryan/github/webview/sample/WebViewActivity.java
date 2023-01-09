@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.SystemClock;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.webkit.CookieManager;
@@ -17,17 +16,19 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.gson.Gson;
 import com.ryan.github.view.FastWebView;
 import com.ryan.github.view.FastWebViewPool;
 import com.ryan.github.view.WebResource;
+import com.ryan.github.view.cache.Chain;
+import com.ryan.github.view.cache.interceptor.CacheInterceptor;
 import com.ryan.github.view.config.CacheConfig;
 import com.ryan.github.view.config.DefaultMimeTypeFilter;
 import com.ryan.github.view.config.FastCacheMode;
 import com.ryan.github.view.cookie.CookieInterceptor;
 import com.ryan.github.view.cookie.FastCookieManager;
-import com.ryan.github.view.offline.Chain;
-import com.ryan.github.view.offline.ResourceInterceptor;
 import com.ryan.github.view.utils.LogUtils;
 
 import java.io.File;
@@ -35,10 +36,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.ryan.github.webview.sample.MainActivity.sUseWebViewPool;
 import okhttp3.Cookie;
 import okhttp3.HttpUrl;
-
-import static com.ryan.github.webview.sample.MainActivity.sUseWebViewPool;
 
 /**
  * Created by Ryan
@@ -80,17 +80,15 @@ public class WebViewActivity extends AppCompatActivity {
         webSettings.setBuiltInZoomControls(false);
         webSettings.setDisplayZoomControls(false);
         webSettings.setDefaultTextEncodingName("UTF-8");
-        webSettings.setBlockNetworkImage(true);
+//        webSettings.setBlockNetworkImage(true);
 
         // 设置正确的cache mode以支持离线加载
         int cacheMode = NetworkUtils.isAvailable(this) ?
                 WebSettings.LOAD_DEFAULT : WebSettings.LOAD_CACHE_ELSE_NETWORK;
         webSettings.setCacheMode(cacheMode);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            webSettings.setAllowFileAccessFromFileURLs(true);
-            webSettings.setAllowUniversalAccessFromFileURLs(true);
-        }
+        webSettings.setAllowFileAccessFromFileURLs(true);
+        webSettings.setAllowUniversalAccessFromFileURLs(true);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             CookieManager cookieManager = CookieManager.getInstance();
             cookieManager.setAcceptThirdPartyCookies(fastWebView, true);
@@ -101,7 +99,7 @@ public class WebViewActivity extends AppCompatActivity {
                 .setExtensionFilter(new CustomMimeTypeFilter())
                 .build();
         fastWebView.setCacheMode(FastCacheMode.FORCE, config);
-        fastWebView.addResourceInterceptor(new ResourceInterceptor() {
+        fastWebView.addResourceInterceptor(new CacheInterceptor() {
             @Override
             public WebResource load(Chain chain) {
                 return chain.process(chain.getRequest());
@@ -171,8 +169,8 @@ public class WebViewActivity extends AppCompatActivity {
         @Override
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
-            view.getSettings().setBlockNetworkImage(false);
-            view.loadUrl("javascript:android.sendResource(JSON.stringify(window.performance.timing))");
+//            view.getSettings().setBlockNetworkImage(false);
+//            view.loadUrl("javascript:android.sendResource(JSON.stringify(window.performance.timing))");
         }
 
         @Override

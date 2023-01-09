@@ -1,15 +1,16 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache.interceptor;
 
 import android.text.TextUtils;
-import android.util.Log;
 
 import com.ryan.github.view.WebResource;
 import com.ryan.github.view.config.CacheConfig;
+import com.ryan.github.view.cache.CacheRequest;
+import com.ryan.github.view.cache.Chain;
+import com.ryan.github.view.cache.Destroyable;
 import com.ryan.github.view.utils.StreamUtils;
 import com.ryan.github.view.utils.lru.DiskLruCache;
 import com.ryan.github.view.utils.HeaderUtils;
 import com.ryan.github.view.utils.LogUtils;
-import com.ryan.github.view.webview.BuildConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,7 +27,7 @@ import okio.Okio;
  * Created by Ryan
  * at 2019/9/27
  */
-public class DiskResourceInterceptor implements Destroyable, ResourceInterceptor {
+public class DiskCacheInterceptor implements Destroyable, CacheInterceptor {
 
     private static final int ENTRY_META = 0;
     private static final int ENTRY_BODY = 1;
@@ -34,7 +35,7 @@ public class DiskResourceInterceptor implements Destroyable, ResourceInterceptor
     private DiskLruCache mDiskLruCache;
     private CacheConfig mCacheConfig;
 
-    DiskResourceInterceptor(CacheConfig cacheConfig) {
+    public DiskCacheInterceptor(CacheConfig cacheConfig) {
         mCacheConfig = cacheConfig;
     }
 

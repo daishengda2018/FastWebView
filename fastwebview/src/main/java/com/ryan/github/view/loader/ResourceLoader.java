@@ -3,13 +3,13 @@ package com.ryan.github.view.loader;
 import com.ryan.github.view.WebResource;
 
 /**
- * Created by Ryan
- * 2018/2/7 下午7:53
+ * 资源加载
  */
 public interface ResourceLoader {
-
-    WebResource getResource(SourceRequest request);
-
+    /**
+     * 加载资源
+     */
+    WebResource loadResource(SourceRequest request);
 }
 
 

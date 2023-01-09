@@ -11,7 +11,7 @@ import android.webkit.WebViewClient;
 import com.ryan.github.view.config.CacheConfig;
 import com.ryan.github.view.config.FastCacheMode;
 import com.ryan.github.view.cookie.FastCookieManager;
-import com.ryan.github.view.offline.ResourceInterceptor;
+import com.ryan.github.view.cache.interceptor.CacheInterceptor;
 import com.ryan.github.view.utils.LogUtils;
 
 /**
@@ -64,8 +64,8 @@ public class FastWebView extends WebView implements FastOpenApi {
         clearHistory();
         clearCache(true);
         removeAllViews();
-        ViewParent viewParent = this.getParent();
-        if (viewParent != null && viewParent instanceof ViewGroup) {
+        final ViewParent viewParent = this.getParent();
+        if (viewParent instanceof ViewGroup) {
             ((ViewGroup) viewParent).removeView(this);
         }
         if (mFastClient != null) {
@@ -99,7 +99,7 @@ public class FastWebView extends WebView implements FastOpenApi {
         }
     }
 
-    public void addResourceInterceptor(ResourceInterceptor interceptor) {
+    public void addResourceInterceptor(CacheInterceptor interceptor) {
         if (mFastClient != null) {
             mFastClient.addResourceInterceptor(interceptor);
         }

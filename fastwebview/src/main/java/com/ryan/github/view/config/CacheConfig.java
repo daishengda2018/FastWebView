@@ -58,6 +58,7 @@ public class CacheConfig {
         private MimeTypeFilter filter = new DefaultMimeTypeFilter();
 
         public Builder(Context context) {
+            // TODO: 2023/1/9 需要查看 Android 10 的存储沙盒
             cacheDir = context.getCacheDir() + File.separator + CACHE_DIR_NAME;
             version = AppVersionUtil.getVersionCode(context);
         }

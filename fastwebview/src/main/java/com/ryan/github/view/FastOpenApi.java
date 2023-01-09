@@ -2,7 +2,7 @@ package com.ryan.github.view;
 
 import com.ryan.github.view.config.CacheConfig;
 import com.ryan.github.view.config.FastCacheMode;
-import com.ryan.github.view.offline.ResourceInterceptor;
+import com.ryan.github.view.cache.interceptor.CacheInterceptor;
 
 /**
  * Created by Ryan
@@ -12,5 +12,5 @@ public interface FastOpenApi {
 
     void setCacheMode(FastCacheMode mode, CacheConfig cacheConfig);
 
-    void addResourceInterceptor(ResourceInterceptor interceptor);
+    void addResourceInterceptor(CacheInterceptor interceptor);
 }

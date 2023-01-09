@@ -23,7 +23,7 @@ public class DefaultResourceLoader implements ResourceLoader {
     private static final String TAG = DefaultResourceLoader.class.getName();
 
     @Override
-    public WebResource getResource(SourceRequest sourceRequest) {
+    public WebResource loadResource(SourceRequest sourceRequest) {
         String url = sourceRequest.getUrl();
         try {
             URL urlRequest = new URL(url);

@@ -3,7 +3,9 @@ package com.ryan.github.view;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 
-import com.ryan.github.view.offline.Destroyable;
+import com.ryan.github.view.cache.Destroyable;
+
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Created by Ryan
@@ -11,6 +13,6 @@ import com.ryan.github.view.offline.Destroyable;
  */
 public interface WebViewCache extends FastOpenApi, Destroyable {
 
+    @Nullable
     WebResourceResponse getResource(WebResourceRequest request, int webViewCacheMode, String userAgent);
-
 }

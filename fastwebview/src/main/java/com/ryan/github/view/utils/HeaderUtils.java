@@ -1,10 +1,10 @@
 package com.ryan.github.view.utils;
 
-import android.support.v4.util.ArraySet;
 import android.text.TextUtils;
 
+import androidx.collection.ArraySet;
+
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;

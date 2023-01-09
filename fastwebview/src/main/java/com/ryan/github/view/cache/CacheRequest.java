@@ -1,4 +1,4 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache;
 
 import com.ryan.github.view.utils.MD5Utils;
 

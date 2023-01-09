@@ -4,15 +4,14 @@ import android.content.Context;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 
+import com.ryan.github.view.cache.CacheProvider;
+import com.ryan.github.view.cache.CacheProviderImpl;
+import com.ryan.github.view.cache.CacheRequest;
+import com.ryan.github.view.cache.interceptor.CacheInterceptor;
 import com.ryan.github.view.config.CacheConfig;
 import com.ryan.github.view.config.FastCacheMode;
-import com.ryan.github.view.offline.CacheRequest;
-import com.ryan.github.view.offline.OfflineServer;
-import com.ryan.github.view.offline.OfflineServerImpl;
-import com.ryan.github.view.offline.ResourceInterceptor;
 import com.ryan.github.view.utils.MimeTypeMapUtils;
 
-import java.io.File;
 import java.util.Map;
 
 /**
@@ -23,7 +22,7 @@ public class WebViewCacheImpl implements WebViewCache {
 
     private FastCacheMode mFastCacheMode;
     private CacheConfig mCacheConfig;
-    private OfflineServer mOfflineServer;
+    private CacheProvider mCacheProvider;
     private Context mContext;
 
     WebViewCacheImpl(Context context) {
@@ -33,23 +32,20 @@ public class WebViewCacheImpl implements WebViewCache {
     @Override
     public WebResourceResponse getResource(WebResourceRequest webResourceRequest, int cacheMode, String userAgent) {
         if (mFastCacheMode == FastCacheMode.DEFAULT) {
-            throw new IllegalStateException("an error occurred.");
+            return null;
         }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            String url = webResourceRequest.getUrl().toString();
-            String extension = MimeTypeMapUtils.getFileExtensionFromUrl(url);
-            String mimeType = MimeTypeMapUtils.getMimeTypeFromExtension(extension);
-            CacheRequest cacheRequest = new CacheRequest();
-            cacheRequest.setUrl(url);
-            cacheRequest.setMime(mimeType);
-            cacheRequest.setForceMode(mFastCacheMode == FastCacheMode.FORCE);
-            cacheRequest.setUserAgent(userAgent);
-            cacheRequest.setWebViewCacheMode(cacheMode);
-            Map<String, String> headers = webResourceRequest.getRequestHeaders();
-            cacheRequest.setHeaders(headers);
-            return getOfflineServer().get(cacheRequest);
-        }
-        throw new IllegalStateException("an error occurred.");
+        final String url = webResourceRequest.getUrl().toString();
+        final String extension = MimeTypeMapUtils.getFileExtensionFromUrl(url);
+        final String mimeType = MimeTypeMapUtils.getMimeTypeFromExtension(extension);
+        final Map<String, String> headers = webResourceRequest.getRequestHeaders();
+        CacheRequest cacheRequest = new CacheRequest();
+        cacheRequest.setUrl(url);
+        cacheRequest.setMime(mimeType);
+        cacheRequest.setForceMode(mFastCacheMode == FastCacheMode.FORCE);
+        cacheRequest.setUserAgent(userAgent);
+        cacheRequest.setWebViewCacheMode(cacheMode);
+        cacheRequest.setHeaders(headers);
+        return getCacheProvider().get(cacheRequest);
     }
 
     @Override
@@ -59,15 +55,15 @@ public class WebViewCacheImpl implements WebViewCache {
     }
 
     @Override
-    public void addResourceInterceptor(ResourceInterceptor interceptor) {
-        getOfflineServer().addResourceInterceptor(interceptor);
+    public void addResourceInterceptor(CacheInterceptor interceptor) {
+        getCacheProvider().addResourceInterceptor(interceptor);
     }
 
-    private synchronized OfflineServer getOfflineServer() {
-        if (mOfflineServer == null) {
-            mOfflineServer = new OfflineServerImpl(mContext, getCacheConfig());
+    private synchronized CacheProvider getCacheProvider() {
+        if (mCacheProvider == null) {
+            mCacheProvider = new CacheProviderImpl(mContext, getCacheConfig());
         }
-        return mOfflineServer;
+        return mCacheProvider;
     }
 
     private CacheConfig getCacheConfig() {
@@ -80,12 +76,12 @@ public class WebViewCacheImpl implements WebViewCache {
 
     @Override
     public void destroy() {
-        if (mOfflineServer != null) {
-            mOfflineServer.destroy();
+        if (mCacheProvider != null) {
+            mCacheProvider.destroy();
         }
         // help gc
         mCacheConfig = null;
-        mOfflineServer = null;
+        mCacheProvider = null;
         mContext = null;
     }
 }

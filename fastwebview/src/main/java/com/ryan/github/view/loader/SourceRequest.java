@@ -1,6 +1,6 @@
 package com.ryan.github.view.loader;
 
-import com.ryan.github.view.offline.CacheRequest;
+import com.ryan.github.view.cache.CacheRequest;
 
 import java.util.Map;
 

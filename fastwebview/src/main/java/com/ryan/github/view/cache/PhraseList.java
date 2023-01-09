@@ -1,4 +1,4 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache;
 
 /**
  * provider HTTP status code to reasonPhrase map.

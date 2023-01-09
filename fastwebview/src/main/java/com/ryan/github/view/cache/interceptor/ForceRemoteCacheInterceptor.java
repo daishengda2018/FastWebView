@@ -1,4 +1,4 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache.interceptor;
 
 import android.content.Context;
 import android.text.TextUtils;
@@ -9,17 +9,20 @@ import com.ryan.github.view.WebResource;
 import com.ryan.github.view.loader.OkHttpResourceLoader;
 import com.ryan.github.view.loader.ResourceLoader;
 import com.ryan.github.view.loader.SourceRequest;
+import com.ryan.github.view.cache.CacheRequest;
+import com.ryan.github.view.cache.Chain;
+import com.ryan.github.view.cache.Destroyable;
 
 /**
  * Created by Ryan
  * at 2019/9/27
  */
-public class ForceRemoteResourceInterceptor implements Destroyable, ResourceInterceptor {
+public class ForceRemoteCacheInterceptor implements Destroyable, CacheInterceptor {
 
     private ResourceLoader mResourceLoader;
     private MimeTypeFilter mMimeTypeFilter;
 
-    ForceRemoteResourceInterceptor(Context context, CacheConfig cacheConfig) {
+    public ForceRemoteCacheInterceptor(Context context, CacheConfig cacheConfig) {
         mResourceLoader = new OkHttpResourceLoader(context);
         mMimeTypeFilter = cacheConfig != null ? cacheConfig.getFilter() : null;
     }
@@ -35,7 +38,7 @@ public class ForceRemoteResourceInterceptor implements Destroyable, ResourceInte
             isFilter = mMimeTypeFilter.isFilter(mime);
         }
         SourceRequest sourceRequest = new SourceRequest(request, isFilter);
-        WebResource resource = mResourceLoader.getResource(sourceRequest);
+        WebResource resource = mResourceLoader.loadResource(sourceRequest);
         if (resource != null) {
             return resource;
         }

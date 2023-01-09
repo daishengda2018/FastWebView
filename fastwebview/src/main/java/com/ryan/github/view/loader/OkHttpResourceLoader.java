@@ -7,24 +7,21 @@ import com.ryan.github.view.WebResource;
 import com.ryan.github.view.okhttp.OkHttpClientProvider;
 import com.ryan.github.view.utils.HeaderUtils;
 import com.ryan.github.view.utils.LogUtils;
-import com.ryan.github.view.webview.BuildConfig;
 
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK;
+import static android.webkit.WebSettings.LOAD_CACHE_ONLY;
+import static android.webkit.WebSettings.LOAD_NO_CACHE;
+import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
 import okhttp3.CacheControl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import okhttp3.internal.Util;
-
-import static android.webkit.WebSettings.LOAD_CACHE_ELSE_NETWORK;
-import static android.webkit.WebSettings.LOAD_CACHE_ONLY;
-import static android.webkit.WebSettings.LOAD_NO_CACHE;
-import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
 
 /**
  * load remote resources using okhttp.
@@ -35,15 +32,16 @@ import static java.net.HttpURLConnection.HTTP_NOT_MODIFIED;
 public class OkHttpResourceLoader implements ResourceLoader {
 
     private static final String HEADER_USER_AGENT = "User-Agent";
-    private static final String DEFAULT_USER_AGENT = "FastWebView" + BuildConfig.VERSION_NAME;
-    private Context mContext;
+    //    private static final String DEFAULT_USER_AGENT = "FastWebView" + BuildConfig.VERSION_NAME;
+    private static final String DEFAULT_USER_AGENT = "FastWebView";
+    private final Context mContext;
 
     public OkHttpResourceLoader(Context context) {
         mContext = context;
     }
 
     @Override
-    public WebResource getResource(SourceRequest sourceRequest) {
+    public WebResource loadResource(SourceRequest sourceRequest) {
         String url = sourceRequest.getUrl();
         LogUtils.d(String.format("load url: %s", url));
         boolean isCacheByOkHttp = sourceRequest.isCacheable();
@@ -55,11 +53,7 @@ public class OkHttpResourceLoader implements ResourceLoader {
         }
         Locale locale = Locale.getDefault();
         String acceptLanguage;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            acceptLanguage = locale.toLanguageTag();
-        } else {
-            acceptLanguage = locale.getLanguage();
-        }
+        acceptLanguage = locale.toLanguageTag();
         if (!acceptLanguage.equalsIgnoreCase("en-US")) {
             acceptLanguage += ",en-US;q=0.9";
         }

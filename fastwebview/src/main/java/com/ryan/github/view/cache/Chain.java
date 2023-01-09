@@ -1,6 +1,7 @@
-package com.ryan.github.view.offline;
+package com.ryan.github.view.cache;
 
 import com.ryan.github.view.WebResource;
+import com.ryan.github.view.cache.interceptor.CacheInterceptor;
 
 import java.util.List;
 
@@ -10,11 +11,11 @@ import java.util.List;
  */
 public class Chain {
 
-    private List<ResourceInterceptor> mInterceptors;
+    private final List<CacheInterceptor> mInterceptors;
     private int mIndex = -1;
     private CacheRequest mRequest;
 
-    Chain(List<ResourceInterceptor> interceptors) {
+    Chain(List<CacheInterceptor> interceptors) {
         mInterceptors = interceptors;
     }
 
@@ -23,7 +24,7 @@ public class Chain {
             return null;
         }
         mRequest = request;
-        ResourceInterceptor interceptor = mInterceptors.get(mIndex);
+        CacheInterceptor interceptor = mInterceptors.get(mIndex);
         return interceptor.load(this);
     }
 
