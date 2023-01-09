@@ -49,9 +49,18 @@ public class DefaultMimeTypeFilter implements MimeTypeFilter {
         addMimeType("application/octet-stream");
     }
 
+    public DefaultMimeTypeFilter(final Set<String> filterMimeTypes) {
+        mFilterMimeTypes = filterMimeTypes;
+    }
+
     @Override
-    public boolean isFilter(String extension) {
-        return !mFilterMimeTypes.contains(extension);
+    public boolean shouldRetain(String mimeType) {
+        return mFilterMimeTypes.contains(mimeType);
+    }
+
+    @Override
+    public boolean shouldReject(final String mimeType) {
+        return !mFilterMimeTypes.contains(mimeType);
     }
 
     @Override

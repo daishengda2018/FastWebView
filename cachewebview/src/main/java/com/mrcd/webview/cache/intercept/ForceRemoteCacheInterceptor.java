@@ -1,17 +1,18 @@
-package com.mrcd.webview.cache.interceptor;
+package com.mrcd.webview.cache.intercept;
 
 import android.content.Context;
 import android.text.TextUtils;
 
+import androidx.annotation.WorkerThread;
+
+import com.mrcd.webview.WebResource;
+import com.mrcd.webview.cache.CacheRequest;
+import com.mrcd.webview.cache.Destroyable;
 import com.mrcd.webview.config.CacheConfig;
 import com.mrcd.webview.config.MimeTypeFilter;
-import com.mrcd.webview.WebResource;
 import com.mrcd.webview.loader.OkHttpResourceLoader;
 import com.mrcd.webview.loader.ResourceLoader;
 import com.mrcd.webview.loader.SourceRequest;
-import com.mrcd.webview.cache.CacheRequest;
-import com.mrcd.webview.cache.Chain;
-import com.mrcd.webview.cache.Destroyable;
 
 /**
  * Created by Ryan
@@ -19,8 +20,8 @@ import com.mrcd.webview.cache.Destroyable;
  */
 public class ForceRemoteCacheInterceptor implements Destroyable, CacheInterceptor {
 
-    private ResourceLoader mResourceLoader;
-    private MimeTypeFilter mMimeTypeFilter;
+    private final ResourceLoader mResourceLoader;
+    private final MimeTypeFilter mMimeTypeFilter;
 
     public ForceRemoteCacheInterceptor(Context context, CacheConfig cacheConfig) {
         mResourceLoader = new OkHttpResourceLoader(context);
@@ -28,17 +29,13 @@ public class ForceRemoteCacheInterceptor implements Destroyable, CacheIntercepto
     }
 
     @Override
+    @WorkerThread
     public WebResource load(Chain chain) {
-        CacheRequest request = chain.getRequest();
-        String mime = request.getMime();
-        boolean isFilter;
-        if (TextUtils.isEmpty(mime)) {
-            isFilter = isFilterHtml();
-        } else {
-            isFilter = mMimeTypeFilter.isFilter(mime);
-        }
-        SourceRequest sourceRequest = new SourceRequest(request, isFilter);
-        WebResource resource = mResourceLoader.loadResource(sourceRequest);
+        final CacheRequest request = chain.getRequest();
+        final String mime = request.getMime();
+        final boolean isCacheable = TextUtils.isEmpty(mime) ? shouldCacheHtml() : mMimeTypeFilter.shouldRetain(mime);
+        final SourceRequest sourceRequest = new SourceRequest(request, isCacheable);
+        final WebResource resource = mResourceLoader.loadResource(sourceRequest);
         if (resource != null) {
             return resource;
         }
@@ -52,7 +49,7 @@ public class ForceRemoteCacheInterceptor implements Destroyable, CacheIntercepto
         }
     }
 
-    private boolean isFilterHtml() {
-        return mMimeTypeFilter.isFilter("text/html");
+    private boolean shouldCacheHtml() {
+        return mMimeTypeFilter.shouldRetain("text/html");
     }
 }

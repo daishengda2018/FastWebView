@@ -8,7 +8,7 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import com.mrcd.webview.cache.interceptor.CacheInterceptor;
+import com.mrcd.webview.cache.intercept.CacheInterceptor;
 import com.mrcd.webview.config.CacheConfig;
 import com.mrcd.webview.config.CacheMode;
 import com.mrcd.webview.cookie.FastCookieManager;
@@ -17,7 +17,7 @@ import com.mrcd.webview.utils.LogUtils;
 /**
  * 带有三级缓存的 WebView
  */
-public class CacheWebView extends WebView implements FastOpenApi {
+public class CacheWebView extends WebView implements CommonApi {
 
     private WebViewClientWrapper mWrapperClient;
     private WebViewClient mUserClient;
@@ -35,7 +35,11 @@ public class CacheWebView extends WebView implements FastOpenApi {
         super(context, attrs, defStyleAttr);
     }
 
-
+    /**
+     * 预加载，加载完毕后会缓存在本地，无网络也可以访问
+     *
+     * @param url 网络地址
+     */
     public static void preload(Context context, String url) {
         new CacheWebView(context.getApplicationContext()).loadUrl(url);
     }

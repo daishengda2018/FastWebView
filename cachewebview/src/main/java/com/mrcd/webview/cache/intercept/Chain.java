@@ -1,7 +1,9 @@
-package com.mrcd.webview.cache;
+package com.mrcd.webview.cache.intercept;
+
+import androidx.annotation.WorkerThread;
 
 import com.mrcd.webview.WebResource;
-import com.mrcd.webview.cache.interceptor.CacheInterceptor;
+import com.mrcd.webview.cache.CacheRequest;
 
 import java.util.List;
 
@@ -15,10 +17,11 @@ public class Chain {
     private int mIndex = -1;
     private CacheRequest mRequest;
 
-    Chain(List<CacheInterceptor> interceptors) {
+    public Chain(List<CacheInterceptor> interceptors) {
         mInterceptors = interceptors;
     }
 
+    @WorkerThread
     public WebResource process(CacheRequest request) {
         if (++mIndex >= mInterceptors.size()) {
             return null;

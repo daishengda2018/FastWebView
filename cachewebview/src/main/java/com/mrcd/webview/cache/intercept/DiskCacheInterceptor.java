@@ -1,16 +1,17 @@
-package com.mrcd.webview.cache.interceptor;
+package com.mrcd.webview.cache.intercept;
 
 import android.text.TextUtils;
 
+import androidx.annotation.WorkerThread;
+
 import com.mrcd.webview.WebResource;
-import com.mrcd.webview.config.CacheConfig;
 import com.mrcd.webview.cache.CacheRequest;
-import com.mrcd.webview.cache.Chain;
 import com.mrcd.webview.cache.Destroyable;
-import com.mrcd.webview.utils.StreamUtils;
-import com.mrcd.webview.utils.lru.DiskLruCache;
+import com.mrcd.webview.config.CacheConfig;
 import com.mrcd.webview.utils.HeaderUtils;
 import com.mrcd.webview.utils.LogUtils;
+import com.mrcd.webview.utils.StreamUtils;
+import com.mrcd.webview.utils.lru.DiskLruCache;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,43 +34,61 @@ public class DiskCacheInterceptor implements Destroyable, CacheInterceptor {
     private static final int ENTRY_BODY = 1;
     private static final int ENTRY_COUNT = 2;
     private DiskLruCache mDiskLruCache;
-    private CacheConfig mCacheConfig;
+    private final CacheConfig mCacheConfig;
 
     public DiskCacheInterceptor(CacheConfig cacheConfig) {
         mCacheConfig = cacheConfig;
+    }
+
+    @Override
+    @WorkerThread
+    public WebResource load(Chain chain) {
+        final CacheRequest request = chain.getRequest();
+        ensureDiskLruCacheCreate();
+        // DiskLruCache 内部使用唯一线程驱动，所以线程安全
+        WebResource webResource = getFromDiskCache(request.getKey());
+        if (isRealMimeTypeCacheable(webResource)) {
+            LogUtils.d(String.format("disk cache hit: %s", request.getUrl()));
+            return webResource;
+        }
+
+        webResource = chain.process(request);
+        if (webResource != null && (webResource.isCacheByOurselves() || isRealMimeTypeCacheable(webResource))) {
+            cacheToDisk(request.getKey(), webResource);
+        }
+        return webResource;
     }
 
     private synchronized void ensureDiskLruCacheCreate() {
         if (mDiskLruCache != null && !mDiskLruCache.isClosed()) {
             return;
         }
-        String dir = mCacheConfig.getCacheDir();
-        int version = mCacheConfig.getVersion();
-        long cacheSize = mCacheConfig.getDiskCacheSize();
+        final String dir = mCacheConfig.getCacheDir();
+        final int version = mCacheConfig.getVersion();
+        final long cacheSize = mCacheConfig.getDiskCacheSize();
         try {
             mDiskLruCache = DiskLruCache.open(new File(dir), version, ENTRY_COUNT, cacheSize);
-        } catch (IOException e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
     }
 
     private WebResource getFromDiskCache(String key) {
         try {
-            if (mDiskLruCache.isClosed()) {
+            if (mDiskLruCache == null || mDiskLruCache.isClosed()) {
                 return null;
             }
-            DiskLruCache.Snapshot snapshot = mDiskLruCache.get(key);
+            final DiskLruCache.Snapshot snapshot = mDiskLruCache.get(key);
             if (snapshot != null) {
-                BufferedSource entrySource = Okio.buffer(Okio.source(snapshot.getInputStream(ENTRY_META)));
+                final BufferedSource entrySource = Okio.buffer(Okio.source(snapshot.getInputStream(ENTRY_META)));
                 // 1. read status
-                String responseCode = entrySource.readUtf8LineStrict();
-                String reasonPhrase = entrySource.readUtf8LineStrict();
+                final String responseCode = entrySource.readUtf8LineStrict();
+                final String reasonPhrase = entrySource.readUtf8LineStrict();
                 // 2. read headers
                 long headerSize = entrySource.readDecimalLong();
-                Map<String, String> headers;
-                Headers.Builder responseHeadersBuilder = new Headers.Builder();
+                final Headers.Builder responseHeadersBuilder = new Headers.Builder();
                 // read first placeholder line
-                String placeHolder = entrySource.readUtf8LineStrict();
+                final String placeHolder = entrySource.readUtf8LineStrict();
                 if (!TextUtils.isEmpty(placeHolder.trim())) {
                     responseHeadersBuilder.add(placeHolder);
                     headerSize--;
@@ -80,13 +99,13 @@ public class DiskCacheInterceptor implements Destroyable, CacheInterceptor {
                         responseHeadersBuilder.add(line);
                     }
                 }
-                headers = HeaderUtils.generateHeadersMap(responseHeadersBuilder.build());
+                Map<String, String> headers = HeaderUtils.generateHeadersMap(responseHeadersBuilder.build());
                 // 3. read body
                 InputStream inputStream = snapshot.getInputStream(ENTRY_BODY);
                 if (inputStream != null) {
                     WebResource webResource = new WebResource();
                     webResource.setReasonPhrase(reasonPhrase);
-                    webResource.setResponseCode(Integer.valueOf(responseCode));
+                    webResource.setResponseCode(Integer.parseInt(responseCode));
                     webResource.setOriginBytes(StreamUtils.streamToBytes(inputStream));
                     webResource.setResponseHeaders(headers);
                     webResource.setModified(false);
@@ -98,34 +117,6 @@ public class DiskCacheInterceptor implements Destroyable, CacheInterceptor {
             e.printStackTrace();
         }
         return null;
-    }
-
-
-    @Override
-    public WebResource load(Chain chain) {
-        CacheRequest request = chain.getRequest();
-        ensureDiskLruCacheCreate();
-        WebResource webResource = getFromDiskCache(request.getKey());
-        if (webResource != null && isRealMimeTypeCacheable(webResource)) {
-            LogUtils.d(String.format("disk cache hit: %s", request.getUrl()));
-            return webResource;
-        }
-        webResource = chain.process(request);
-        if (webResource != null && (webResource.isCacheByOurselves() || isRealMimeTypeCacheable(webResource))) {
-            cacheToDisk(request.getKey(), webResource);
-        }
-        return webResource;
-    }
-
-    @Override
-    public void destroy() {
-        if (mDiskLruCache != null && !mDiskLruCache.isClosed()) {
-            try {
-                mDiskLruCache.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     private void cacheToDisk(String key, WebResource webResource) {
@@ -198,7 +189,18 @@ public class DiskCacheInterceptor implements Destroyable, CacheInterceptor {
                 }
             }
         }
-        return contentType != null && !mCacheConfig.getFilter().isFilter(contentType);
+        return contentType != null && !mCacheConfig.getFilter().shouldRetain(contentType);
+    }
+
+    @Override
+    public void destroy() {
+        if (mDiskLruCache != null && !mDiskLruCache.isClosed()) {
+            try {
+                mDiskLruCache.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
 

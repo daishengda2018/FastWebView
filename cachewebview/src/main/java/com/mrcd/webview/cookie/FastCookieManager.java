@@ -15,8 +15,8 @@ import okhttp3.CookieJar;
  */
 public class FastCookieManager implements Destroyable {
 
-    private List<CookieInterceptor> mRequestCookieInterceptors;
-    private List<CookieInterceptor> mResponseCookieInterceptors;
+    private final List<CookieInterceptor> mRequestCookieInterceptors;
+    private final List<CookieInterceptor> mResponseCookieInterceptors;
     private CookieJar mUserCookieJar;
 
     private FastCookieManager() {

@@ -26,10 +26,10 @@ public class MD5Utils {
     }
 
     public static String bytesToHex(byte[] bytes,boolean upperCase) {
-        StringBuffer md5str = new StringBuffer();
+        StringBuilder md5str = new StringBuilder();
         int digital;
-        for (int i = 0; i < bytes.length; i++) {
-            digital = bytes[i];
+        for (final byte aByte : bytes) {
+            digital = aByte;
 
             if (digital < 0) {
                 digital += 256;

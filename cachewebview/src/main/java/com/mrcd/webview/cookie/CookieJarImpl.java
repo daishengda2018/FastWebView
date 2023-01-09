@@ -25,7 +25,7 @@ public class CookieJarImpl implements CookieJar {
     }
 
     @Override
-    public synchronized void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+    public synchronized void saveFromResponse(@NonNull HttpUrl url, @NonNull List<Cookie> cookies) {
         List<CookieInterceptor> interceptors = mCookieManager.getRequestCookieInterceptors();
         if (interceptors != null && !interceptors.isEmpty()) {
             for (CookieInterceptor interceptor : interceptors) {

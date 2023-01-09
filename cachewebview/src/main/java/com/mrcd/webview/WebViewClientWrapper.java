@@ -19,21 +19,25 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
-import com.mrcd.webview.cache.interceptor.CacheInterceptor;
+import androidx.annotation.WorkerThread;
+
+import com.mrcd.webview.cache.CacheManager;
+import com.mrcd.webview.cache.intercept.CacheInterceptor;
 import com.mrcd.webview.config.CacheConfig;
 import com.mrcd.webview.config.CacheMode;
+import com.mrcd.webview.utils.LogUtils;
 
 import javax.security.auth.Destroyable;
 
 /**
  * 用于拦截资源加载的 WebViewClient 装饰器。
  */
-class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroyable {
+class WebViewClientWrapper extends WebViewClient implements CommonApi, Destroyable {
     private static final String SCHEME_HTTP = "http";
     private static final String SCHEME_HTTPS = "https";
     private static final String METHOD_GET = "GET";
     private WebViewClient mClient;
-    private final WebViewCache mWebViewCache;
+    private final CacheManager mCacheManager;
     private final int mWebViewCacheMode;
     private final String mUserAgent;
     private final CacheWebView mWebView;
@@ -43,7 +47,7 @@ class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroy
         final WebSettings settings = webView.getSettings();
         mWebViewCacheMode = settings.getCacheMode();
         mUserAgent = settings.getUserAgentString();
-        mWebViewCache = new WebViewCache(webView.getContext());
+        mCacheManager = new CacheManager(webView.getContext());
     }
 
     void setupWrapperFor(WebViewClient client) {
@@ -55,8 +59,7 @@ class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroy
         if (mClient != null) {
             return mClient.shouldOverrideUrlLoading(view, url);
         }
-        view.loadUrl(url);
-        return true;
+        return false;
     }
 
     @TargetApi(Build.VERSION_CODES.N)
@@ -65,12 +68,13 @@ class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroy
         if (mClient != null) {
             return mClient.shouldOverrideUrlLoading(view, request);
         }
-        view.loadUrl(request.getUrl().toString());
-        return true;
+        return false;
     }
 
     @Override
+    @WorkerThread
     public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+        // 此方法执行在异步线程
         if (mClient != null) {
             final WebResourceResponse response = mClient.shouldInterceptRequest(view, request);
             if (response != null) {
@@ -86,7 +90,7 @@ class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroy
         if ((TextUtils.equals(SCHEME_HTTP, scheme)
                 || TextUtils.equals(SCHEME_HTTPS, scheme))
                 && method.equalsIgnoreCase(METHOD_GET)) {
-            return mWebViewCache.getResource(request, mWebViewCacheMode, mUserAgent);
+            return mCacheManager.load(request, mWebViewCacheMode, mUserAgent);
         }
         return null;
     }
@@ -278,22 +282,22 @@ class WebViewClientWrapper extends WebViewClient implements FastOpenApi, Destroy
 
     @Override
     public void setCacheMode(CacheMode mode, CacheConfig cacheConfig) {
-        if (mWebViewCache != null) {
-            mWebViewCache.setCacheMode(mode, cacheConfig);
+        if (mCacheManager != null) {
+            mCacheManager.setCacheMode(mode, cacheConfig);
         }
     }
 
     @Override
     public void addResourceInterceptor(CacheInterceptor interceptor) {
-        if (mWebViewCache != null) {
-            mWebViewCache.addResourceInterceptor(interceptor);
+        if (mCacheManager != null) {
+            mCacheManager.addResourceInterceptor(interceptor);
         }
     }
 
     @Override
     public void destroy() {
-        if (mWebViewCache != null) {
-            mWebViewCache.destroy();
+        if (mCacheManager != null) {
+            mCacheManager.destroy();
         }
     }
 }

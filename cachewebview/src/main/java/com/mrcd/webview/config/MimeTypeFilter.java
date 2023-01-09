@@ -1,14 +1,19 @@
 package com.mrcd.webview.config;
 
 /**
- * filter some mime type resources without caching.
- * <p>
- * Created by Ryan
- * 2018/2/11 下午2:56
+ * 过滤一些 mime 类型的资源。
  */
 public interface MimeTypeFilter {
 
-    boolean isFilter(String mimeType);
+    /**
+     * 需要保留
+     */
+    boolean shouldRetain(String mimeType);
+
+    /**
+     * 需要拒绝
+     */
+    boolean shouldReject(String mimeType);
 
     void addMimeType(String mimeType);
 

@@ -12,5 +12,4 @@ import okhttp3.HttpUrl;
 public interface CookieInterceptor {
 
     List<Cookie> newCookies(HttpUrl url, List<Cookie> originCookies);
-
 }

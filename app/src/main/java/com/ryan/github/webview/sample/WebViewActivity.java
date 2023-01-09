@@ -20,13 +20,13 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
 import com.mrcd.webview.CacheWebView;
-import com.mrcd.webview.WebViewPool;
 import com.mrcd.webview.WebResource;
-import com.mrcd.webview.cache.Chain;
-import com.mrcd.webview.cache.interceptor.CacheInterceptor;
+import com.mrcd.webview.WebViewPool;
+import com.mrcd.webview.cache.intercept.CacheInterceptor;
+import com.mrcd.webview.cache.intercept.Chain;
 import com.mrcd.webview.config.CacheConfig;
-import com.mrcd.webview.config.DefaultMimeTypeFilter;
 import com.mrcd.webview.config.CacheMode;
+import com.mrcd.webview.config.DefaultMimeTypeFilter;
 import com.mrcd.webview.cookie.CookieInterceptor;
 import com.mrcd.webview.cookie.FastCookieManager;
 import com.mrcd.webview.utils.LogUtils;
@@ -80,6 +80,7 @@ public class WebViewActivity extends AppCompatActivity {
         webSettings.setBuiltInZoomControls(false);
         webSettings.setDisplayZoomControls(false);
         webSettings.setDefaultTextEncodingName("UTF-8");
+        // TODO: 2023/1/9 这么弄可以吗？ 会不会带啦啥问题
 //        webSettings.setBlockNetworkImage(true);
 
         // 设置正确的cache mode以支持离线加载
